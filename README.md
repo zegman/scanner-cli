@@ -1,5 +1,5 @@
 # scanner-cli
-A MacOS CLI client for controlling network scanners implementing [Mopria Alliance eSCL Scan Technical Specification](https://mopria.org/MopriaeSCLSpecDownload.php)
+A MacOS CLI client for controlling network scanners implementing the [Mopria Alliance eSCL Scan Technical Specification](https://mopria.org/MopriaeSCLSpecDownload.php)
 
 ## Installation
 ```
