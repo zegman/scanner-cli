@@ -1,6 +1,12 @@
 # scanner-cli
-A CLI for controlling scanners on MacOS
+A MacOS CLI client for controlling network scanners implementing [Mopria Alliance eSCL Scan Technical Specification](https://mopria.org/MopriaeSCLSpecDownload.php)
 
+## Installation
+```
+pip install -f requirements.txt
+```
+
+## Usage
 ```
 usage: scanner.py [-h] [--source {feeder,flatbed,automatic}] [--format {pdf,jpeg}] [--grayscale] [--resolution {75,100,200,300,600}]
                   [--debug] [--no-open]
