@@ -52,13 +52,21 @@ def main():
         choices=[75, 100, 200, 300, 600])
     parser.add_argument('--debug', '-d', action='store_true')
     parser.add_argument('--no-open', '-o', action='store_false', dest='open')
+    parser.add_argument('--quiet', '-q', action='store_true')
+    parser.add_argument('--duplex', '-D', action='store_true')
     parser.add_argument('filename')
 
     args = parser.parse_args()
 
+    props = info.properties
+    if not args.quiet:
+        print(f'Using {info.name}')
+    if args.duplex and props[b'duplex'] != b'T':
+        print('Duplex not supported', file=sys.stderr)
+        sys.exit(1)
+
     session = requests.Session()
 
-    props = info.properties
     if args.debug:
         print(info, file=sys.stderr)
     BASE = f'{props[b"adminurl"].decode()}:{info.port}{props[b"rs"].decode()}'
@@ -110,6 +118,7 @@ def main():
       <pwg:DocumentFormat>{format}</pwg:DocumentFormat>
       {source}
       <scan:ColorMode>{color}</scan:ColorMode>
+      <scan:Duplex>{str(args.duplex).lower()}</scan:Duplex>
       <scan:XResolution>{args.resolution}</scan:XResolution>
       <scan:YResolution>{args.resolution}</scan:YResolution>
     </scan:ScanSettings>

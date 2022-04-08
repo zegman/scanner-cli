@@ -8,8 +8,8 @@ pip install -f requirements.txt
 
 ## Usage
 ```
-usage: scanner.py [-h] [--source {feeder,flatbed,automatic}] [--format {pdf,jpeg}] [--grayscale] [--resolution {75,100,200,300,600}]
-                  [--debug] [--no-open]
+usage: scanner.py [-h] [--source {feeder,flatbed,automatic}] [--format {pdf,jpeg}] [--grayscale] [--resolution {75,100,200,300,600}] [--debug] [--no-open]
+                  [--quiet] [--duplex]
                   filename
 
 positional arguments:
@@ -23,4 +23,6 @@ optional arguments:
   --resolution {75,100,200,300,600}, -r {75,100,200,300,600}
   --debug, -d
   --no-open, -o
-```
+  --quiet, -q
+  --duplex, -D
+  ```
