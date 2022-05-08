@@ -76,7 +76,8 @@ def main():
     def get_status(job_uuid=None):
         resp = session.get(f'{BASE}/ScannerStatus')
         resp.raise_for_status()
-        status = xmltodict.parse(resp.text)['scan:ScannerStatus']
+        status = xmltodict.parse(
+            resp.text, force_list=('scan:JobInfo'))['scan:ScannerStatus']
         if job_uuid is None:
             return status, None
         for jobinfo in status['scan:Jobs']['scan:JobInfo']:
