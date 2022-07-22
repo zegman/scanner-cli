@@ -1,6 +1,8 @@
 # scanner-cli
 A MacOS CLI client for scanning documents using a network scanner supporting the [Mopria Alliance eSCL Scan Technical Specification](https://mopria.org/MopriaeSCLSpecDownload.php)
 
+Known to work with at least HP Deskjet 4640 series
+
 ## Installation
 ```
 pip install -f requirements.txt
