@@ -14,14 +14,18 @@ import zeroconf
 See: https://mopria.org/MopriaeSCLSpecDownload.php
 '''
 
+
 def resolve_scanner():
     class ZCListener:
         def __init__(self):
             self.info = None
+
         def update_service(self, zeroconf, type, name):
             pass
+
         def remove_service(self, zeroconf, type, name):
             pass
+
         def add_service(self, zeroconf, type, name):
             self.info = zeroconf.get_service_info(type, name)
     with zeroconf.Zeroconf() as zc:
@@ -37,12 +41,13 @@ def resolve_scanner():
             pass
     return listener.info
 
+
 def main():
     parser = argparse.ArgumentParser()
 
     info = resolve_scanner()
     parser.add_argument(
-        '--source', '-S', 
+        '--source', '-S',
         choices=['feeder', 'flatbed', 'automatic'], default='automatic')
     parser.add_argument(
         '--format', '-f', choices=['pdf', 'jpeg'], default='pdf')
@@ -94,7 +99,7 @@ def main():
     if status['pwg:State'] != 'Idle':
         print('Scanner is not idle', file=sys.stderr)
         return 1
-    
+
     source = {
         'automatic': '',
         'feeder': '<pwg:InputSource>Feeder</pwg:InputSource>',
@@ -126,9 +131,9 @@ def main():
     '''
     resp = session.post(f'{BASE}/ScanJobs', data=job)
     resp.raise_for_status()
-    
+
     job_uri = resp.headers['location']
-    job_uuid = job_uri.split('/')[-1] 
+    job_uuid = job_uri.split('/')[-1]
     page = 1
     while True:
         status, jobinfo = get_status(job_uuid=job_uuid)
