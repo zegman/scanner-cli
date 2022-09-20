@@ -74,7 +74,11 @@ def main():
 
     if args.debug:
         print(info, file=sys.stderr)
-    BASE = f'{props[b"adminurl"].decode()}:{info.port}{props[b"rs"].decode()}'
+
+    rs = props[b'rs'].decode()
+    if rs[0] != '/':
+        rs = '/' + rs
+    BASE = f'http://{info.server}:{info.port}{rs}'
     if args.debug:
         print(BASE, file=sys.stderr)
 
