@@ -45,7 +45,6 @@ def resolve_scanner():
 def main():
     parser = argparse.ArgumentParser()
 
-    info = resolve_scanner()
     parser.add_argument(
         '--source', '-S',
         choices=['feeder', 'flatbed', 'automatic'], default='automatic')
@@ -63,6 +62,10 @@ def main():
 
     args = parser.parse_args()
 
+    info = resolve_scanner()
+    if not info:
+        print('No scanner found')
+        sys.exit(1)
     props = info.properties
     if not args.quiet:
         print(f'Using {info.name}')
