@@ -124,7 +124,7 @@ def main():
 
     job = f'''
     <?xml version="1.0" encoding="UTF-8"?>
-    <scan:ScanSettings xmlns:scan="http://schemas.hp.com/imaging/escl/2011/05/03" 
+    <scan:ScanSettings xmlns:scan="http://schemas.hp.com/imaging/escl/2011/05/03"
       xmlns:pwg="http://www.pwg.org/schemas/2010/12/sm">
       <pwg:Version>2.0</pwg:Version>
       <scan:Intent>TextAndGraphic</scan:Intent>
