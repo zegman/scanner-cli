@@ -92,8 +92,14 @@ def main():
             resp.text, force_list=('scan:JobInfo'))['scan:ScannerStatus']
         if job_uuid is None:
             return status, None
+
+        uuid_prefix = "urn:uuid:" # Seen in a Brother MFC device
         for jobinfo in status['scan:Jobs']['scan:JobInfo']:
-            if jobinfo['pwg:JobUuid'] == job_uuid:
+            current_uuid = jobinfo['pwg:JobUuid']
+            if current_uuid.startswith(uuid_prefix):
+                current_uuid = current_uuid[len(uuid_prefix):]
+
+            if current_uuid == job_uuid:
                 return status, jobinfo
         raise RuntimeError('Job not found')
 
@@ -124,7 +130,7 @@ def main():
 
     job = f'''
     <?xml version="1.0" encoding="UTF-8"?>
-    <scan:ScanSettings xmlns:scan="http://schemas.hp.com/imaging/escl/2011/05/03" 
+    <scan:ScanSettings xmlns:scan="http://schemas.hp.com/imaging/escl/2011/05/03"
       xmlns:pwg="http://www.pwg.org/schemas/2010/12/sm">
       <pwg:Version>2.0</pwg:Version>
       <scan:Intent>TextAndGraphic</scan:Intent>
