@@ -7,7 +7,6 @@ Known to work with at least:
 - Canon Pixma G3260
 - Brother MFC-L2710DW
 
-
 ## Installation
 ```
 pip install -f requirements.txt
