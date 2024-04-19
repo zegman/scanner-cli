@@ -68,7 +68,11 @@ def main():
         sys.exit(1)
     props = info.properties
     if not args.quiet:
-        print(f'Using {info.name}')
+        suffix = '._uscan._tcp.local.'
+        name = info.name
+        if info.name.endswith(suffix):
+            name = info.name[:-len(suffix)]
+        print(f'Using {name}')
     if args.duplex and props[b'duplex'] != b'T':
         print('Duplex not supported', file=sys.stderr)
         sys.exit(1)
