@@ -6,6 +6,7 @@ Known to work with at least:
 - HP OfficeJet Pro 9010 series
 - Canon Pixma G3260
 - Brother MFC-L2710DW
+- Brother DCP-L3550CDW
 
 ## Installation
 ```
