@@ -5,6 +5,7 @@ import sys
 import json
 import time
 import subprocess
+import os
 
 import requests
 import xmltodict
@@ -61,6 +62,14 @@ def main():
     parser.add_argument('filename')
 
     args = parser.parse_args()
+
+    basename, fsuffix = os.path.splitext(args.filename)
+    if args.format == 'jpeg':
+        if fsuffix not in {'', '.jpeg', '.jpg'}:
+            print(f'Improper file suffix {fsuffix}', file=sys.stderr)
+            sys.exit(1)
+        if fsuffix == '':
+            fsuffix = '.jpg'
 
     info = resolve_scanner()
     if not info:
@@ -167,7 +176,7 @@ def main():
             with open(args.filename, 'wb') as f:
                 f.write(resp.content)
         else:
-            with open(f'{args.filename.split(".")[:-1]}-{page}.jpg', 'wb') as f:
+            with open(f'{basename}-{page}{fsuffix}', 'wb') as f:
                 f.write(resp.content)
             page += 1
         if status['pwg:State'] != 'Processing':
@@ -185,7 +194,7 @@ def main():
         if args.format == 'pdf':
             subprocess.run(['open', args.filename])
         else:
-            subprocess.run(['open', f'{args.filename.split(".")[:-1]}-1.jpg'])
+            subprocess.run(['open', f'{basename}-1{fsuffix}'])
     return 0
 
 
