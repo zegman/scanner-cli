@@ -32,4 +32,5 @@ optional arguments:
   --no-open, -o
   --quiet, -q
   --duplex, -D
+  --today, -t           Prepend date to file name in ISO format
   ```
