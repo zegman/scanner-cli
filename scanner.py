@@ -6,6 +6,7 @@ import json
 import time
 import subprocess
 import os
+import datetime
 
 import requests
 import xmltodict
@@ -59,9 +60,15 @@ def main():
     parser.add_argument('--no-open', '-o', action='store_false', dest='open')
     parser.add_argument('--quiet', '-q', action='store_true')
     parser.add_argument('--duplex', '-D', action='store_true')
+    parser.add_argument('--today', '-t', action='store_true',
+                        help='Prepend date to file name in ISO format')
     parser.add_argument('filename')
 
     args = parser.parse_args()
+
+    if args.today:
+        args.filename = (
+            datetime.date.today().isoformat() + '-' + args.filename)
 
     basename, fsuffix = os.path.splitext(args.filename)
     if args.format == 'jpeg':
@@ -106,7 +113,7 @@ def main():
         if job_uuid is None:
             return status, None
 
-        uuid_prefix = "urn:uuid:" # Seen in a Brother MFC device
+        uuid_prefix = "urn:uuid:"  # Seen in a Brother MFC device
         for jobinfo in status['scan:Jobs']['scan:JobInfo']:
             current_uuid = jobinfo['pwg:JobUuid']
             if current_uuid.startswith(uuid_prefix):
