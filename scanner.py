@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import argparse
+import decimal
 import sys
 import json
 import time
@@ -8,6 +9,7 @@ import subprocess
 import os
 import datetime
 
+import papersize
 import requests
 import xmltodict
 import zeroconf
@@ -44,6 +46,50 @@ def resolve_scanner():
     return listener.info
 
 
+def parse_region(region):
+    region = region.lower()
+    if region.endswith('-l'):
+        region = region[:-2]
+        if region not in papersize.SIZES:
+            print(f'Can not find paper size {region}', file=sys.stderr)
+            sys.exit(1)
+        paper_size = papersize.parse_papersize(region)
+        paper_size = papersize.rotate(paper_size, papersize.LANDSCAPE)
+        region = {
+            'x': decimal.Decimal('0'),
+            'y': decimal.Decimal('0'),
+            'width': paper_size[0],
+            'height': paper_size[1],
+        }
+    elif region in papersize.SIZES:
+        paper_size = papersize.parse_papersize(region)
+        region = {
+            'x': decimal.Decimal('0'),
+            'y': decimal.Decimal('0'),
+            'width': paper_size[0],
+            'height': paper_size[1],
+        }
+    else:
+        parts = region.split(':')
+        if len(parts) != 4:
+            print(f'Can not parse {region}', file=sys.stderr)
+            sys.exit(1)
+        parts = [papersize.parse_length(p) for p in parts]
+        region = {
+            'x': parts[0],
+            'y': parts[1],
+            'width': parts[2],
+            'height': parts[3],
+        }
+
+    c = papersize.UNITS['in'] / 300  # ThreeHundredthsOfInches
+    region = {
+        k: int(v / c)
+        for k, v in region.items()
+    }
+    return region
+
+
 def main():
     parser = argparse.ArgumentParser()
 
@@ -62,6 +108,13 @@ def main():
     parser.add_argument('--duplex', '-D', action='store_true')
     parser.add_argument('--today', '-t', action='store_true',
                         help='Prepend date to file name in ISO format')
+    parser.add_argument(
+        '--region', '-R',
+        help='Specify a region to scan. Either a paper size as understood by '
+            'the papersize library (https://papersize.readthedocs.io - append "-L" '
+            'for landscape - so "A4-L" for example) or the format '
+            '"Xoffset:Yoffset:Width:Height", with units understood by the '
+            'papersize library. For example: 1cm:1.5cm:10cm:20cm')
     parser.add_argument('filename')
 
     args = parser.parse_args()
@@ -77,6 +130,10 @@ def main():
             sys.exit(1)
         if fsuffix == '':
             fsuffix = '.jpg'
+
+    region = {}
+    if args.region:
+        region = parse_region(args.region)
 
     info = resolve_scanner()
     if not info:
@@ -160,8 +217,20 @@ def main():
       <scan:Duplex>{str(args.duplex).lower()}</scan:Duplex>
       <scan:XResolution>{args.resolution}</scan:XResolution>
       <scan:YResolution>{args.resolution}</scan:YResolution>
-    </scan:ScanSettings>
     '''
+    if region:
+        job += f'''
+          <pwg:ScanRegions>
+            <pwg:ScanRegion>
+              <pwg:ContentRegionUnits>escl:ThreeHundredthsOfInches</pwg:ContentRegionUnits>
+              <pwg:XOffset>{region['x']}</pwg:XOffset>
+              <pwg:YOffset>{region['y']}</pwg:YOffset>
+              <pwg:Width>{region['width']}</pwg:Width>
+              <pwg:Height>{region['height']}</pwg:Height>
+            </pwg:ScanRegion>
+          </pwg:ScanRegions>
+        '''
+    job += '</scan:ScanSettings>'
     resp = session.post(f'{BASE}/ScanJobs', data=job)
     resp.raise_for_status()
 
