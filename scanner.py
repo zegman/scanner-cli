@@ -48,39 +48,29 @@ def resolve_scanner():
 
 def parse_region(region):
     region = region.lower()
-    if region.endswith('-l'):
-        region = region[:-2]
-        if region not in papersize.SIZES:
-            print(f'Can not find paper size {region}', file=sys.stderr)
-            sys.exit(1)
-        paper_size = papersize.parse_papersize(region)
-        paper_size = papersize.rotate(paper_size, papersize.LANDSCAPE)
-        region = {
-            'x': decimal.Decimal('0'),
-            'y': decimal.Decimal('0'),
-            'width': paper_size[0],
-            'height': paper_size[1],
-        }
-    elif region in papersize.SIZES:
-        paper_size = papersize.parse_papersize(region)
-        region = {
-            'x': decimal.Decimal('0'),
-            'y': decimal.Decimal('0'),
-            'width': paper_size[0],
-            'height': paper_size[1],
-        }
-    else:
-        parts = region.split(':')
-        if len(parts) != 4:
-            print(f'Can not parse {region}', file=sys.stderr)
-            sys.exit(1)
-        parts = [papersize.parse_length(p) for p in parts]
-        region = {
-            'x': parts[0],
-            'y': parts[1],
-            'width': parts[2],
-            'height': parts[3],
-        }
+    try:
+        if region in papersize.SIZES:
+            paper_size = papersize.parse_papersize(region)
+            region = {
+                'x': decimal.Decimal('0'),
+                'y': decimal.Decimal('0'),
+                'width': paper_size[0],
+                'height': paper_size[1],
+            }
+        else:
+            parts = region.split(':')
+            if len(parts) != 4:
+                raise papersize.CouldNotParse(region)
+            parts = [papersize.parse_length(p) for p in parts]
+            region = {
+                'x': parts[0],
+                'y': parts[1],
+                'width': parts[2],
+                'height': parts[3],
+            }
+    except papersize.CouldNotParse:
+        print(f'Could not parse {region}', file=sys.stderr)
+        sys.exit(1)
 
     c = papersize.UNITS['in'] / 300  # ThreeHundredthsOfInches
     region = {
@@ -111,8 +101,7 @@ def main():
     parser.add_argument(
         '--region', '-R',
         help='Specify a region to scan. Either a paper size as understood by '
-            'the papersize library (https://papersize.readthedocs.io - append "-L" '
-            'for landscape - so "A4-L" for example) or the format '
+            'the papersize library (https://papersize.readthedocs.io or the format '
             '"Xoffset:Yoffset:Width:Height", with units understood by the '
             'papersize library. For example: 1cm:1.5cm:10cm:20cm')
     parser.add_argument('filename')
