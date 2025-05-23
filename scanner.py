@@ -1,5 +1,9 @@
 #!/usr/bin/env python
 
+# pylint: disable=missing-module-docstring, missing-function-docstring
+# pylint: disable=too-many-locals, too-many-branches, bare-except
+# pylint: disable=too-many-statements, missing-class-docstring
+
 import argparse
 import decimal
 import sys
@@ -14,9 +18,9 @@ import requests
 import xmltodict
 import zeroconf
 
-'''
-See: https://mopria.org/MopriaeSCLSpecDownload.php
-'''
+
+
+# See: https://mopria.org/MopriaeSCLSpecDownload.php
 
 
 def resolve_scanner():
@@ -24,20 +28,20 @@ def resolve_scanner():
         def __init__(self):
             self.info = None
 
-        def update_service(self, zeroconf, type, name):
+        def update_service(self, zeroconf_, type_, name):
             pass
 
-        def remove_service(self, zeroconf, type, name):
+        def remove_service(self, zeroconf_, type_, name):
             pass
 
-        def add_service(self, zeroconf, type, name):
-            self.info = zeroconf.get_service_info(type, name)
+        def add_service(self, zeroconf_, type_, name):
+            self.info = zeroconf_.get_service_info(type_, name)
     with zeroconf.Zeroconf() as zc:
         listener = ZCListener()
         zeroconf.ServiceBrowser(
             zc, "_uscan._tcp.local.", listener=listener)
         try:
-            for i in range(0, 10 * 10):
+            for _ in range(0, 10 * 10):
                 if listener.info:
                     break
                 time.sleep(.1)
@@ -147,15 +151,15 @@ def main():
     rs = props[b'rs'].decode()
     if rs[0] != '/':
         rs = '/' + rs
-    BASE = f'http://{info.server}:{info.port}{rs}'
+    base_url = f'http://{info.server}:{info.port}{rs}'
     if args.debug:
-        print(BASE, file=sys.stderr)
+        print(base_url, file=sys.stderr)
 
     def get_status(job_uuid=None):
-        resp = session.get(f'{BASE}/ScannerStatus')
+        resp = session.get(f'{base_url}/ScannerStatus')
         resp.raise_for_status()
         status = xmltodict.parse(
-            resp.text, force_list=('scan:JobInfo'))['scan:ScannerStatus']
+            resp.text, force_list=('scan:JobInfo', ))['scan:ScannerStatus']
         if job_uuid is None:
             return status, None
 
@@ -169,7 +173,7 @@ def main():
                 return status, jobinfo
         raise RuntimeError('Job not found')
 
-    resp = session.get(f'{BASE}/ScannerCapabilities')
+    resp = session.get(f'{base_url}/ScannerCapabilities')
     resp.raise_for_status()
     if args.debug:
         print(resp.text, file=sys.stderr)
@@ -184,7 +188,7 @@ def main():
         'feeder': '<pwg:InputSource>Feeder</pwg:InputSource>',
         'flatbed': '<pwg:InputSource>Flatbed</pwg:InputSource>',
     }[args.source]
-    format = {
+    doc_format = {
         'pdf': 'application/pdf',
         'jpeg': 'image/jpeg',
     }[args.format]
@@ -200,7 +204,7 @@ def main():
       xmlns:pwg="http://www.pwg.org/schemas/2010/12/sm">
       <pwg:Version>2.0</pwg:Version>
       <scan:Intent>TextAndGraphic</scan:Intent>
-      <pwg:DocumentFormat>{format}</pwg:DocumentFormat>
+      <pwg:DocumentFormat>{doc_format}</pwg:DocumentFormat>
       {source}
       <scan:ColorMode>{color}</scan:ColorMode>
       <scan:Duplex>{str(args.duplex).lower()}</scan:Duplex>
@@ -220,7 +224,7 @@ def main():
           </pwg:ScanRegions>
         '''
     job += '</scan:ScanSettings>'
-    resp = session.post(f'{BASE}/ScanJobs', data=job)
+    resp = session.post(f'{base_url}/ScanJobs', data=job)
     resp.raise_for_status()
 
     job_uri = resp.headers['location']
@@ -257,9 +261,9 @@ def main():
 
     if args.open:
         if args.format == 'pdf':
-            subprocess.run(['open', args.filename])
+            subprocess.run(['open', args.filename], check=False)
         else:
-            subprocess.run(['open', f'{basename}-1{fsuffix}'])
+            subprocess.run(['open', f'{basename}-1{fsuffix}'], check=False)
     return 0
 
 
