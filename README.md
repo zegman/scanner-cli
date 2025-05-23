@@ -34,4 +34,7 @@ optional arguments:
   --quiet, -q
   --duplex, -D
   --today, -t           Prepend date to file name in ISO format
-  ```
+  --region REGION, -R REGION
+                        Specify a region to scan. Either a paper size as understood by the papersize library (https://papersize.readthedocs.io - append "-L" for landscape -
+                        so "A4-L" for example) or the format "Xoffset:Yoffset:Width:Height", with units understood by the papersize library. For example: 1cm:1.5cm:10cm:20cm
+```
