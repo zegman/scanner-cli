@@ -186,7 +186,7 @@ def main():
     source = {
         'automatic': '',
         'feeder': '<pwg:InputSource>Feeder</pwg:InputSource>',
-        'flatbed': '<pwg:InputSource>Flatbed</pwg:InputSource>',
+        'flatbed': '<pwg:InputSource>Platen</pwg:InputSource>',
     }[args.source]
     doc_format = {
         'pdf': 'application/pdf',
@@ -224,6 +224,8 @@ def main():
           </pwg:ScanRegions>
         '''
     job += '</scan:ScanSettings>'
+    if args.debug:
+        print(job, file=sys.stderr)
     resp = session.post(f'{base_url}/ScanJobs', data=job)
     resp.raise_for_status()
 
