@@ -1,17 +1,20 @@
 #!/usr/bin/env python
+# pylint: disable=missing-module-docstring
+from __future__ import annotations
 
 # pylint: disable=missing-module-docstring, missing-function-docstring
 # pylint: disable=too-many-locals, too-many-branches, bare-except
 # pylint: disable=too-many-statements, missing-class-docstring
 
 import argparse
-import decimal
 import sys
 import json
 import time
 import subprocess
 import os
 import datetime
+from decimal import Decimal
+from typing import Any, Dict, Mapping, Optional, Tuple
 
 import papersize
 import requests
@@ -23,19 +26,19 @@ import zeroconf
 # See: https://mopria.org/MopriaeSCLSpecDownload.php
 
 
-def resolve_scanner():
+def resolve_scanner() -> Optional[zeroconf.ServiceInfo]:
     class ZCListener:
-        def __init__(self):
-            self.info = None
+        def __init__(self) -> None:
+            self.info: Optional[zeroconf.ServiceInfo] = None
 
-        def update_service(self, zeroconf_, type_, name):
+        def update_service(self, _zc: zeroconf.Zeroconf, _type: str, _name: str) -> None:
             pass
 
-        def remove_service(self, zeroconf_, type_, name):
+        def remove_service(self, _zc: zeroconf.Zeroconf, _type: str, _name: str) -> None:
             pass
 
-        def add_service(self, zeroconf_, type_, name):
-            self.info = zeroconf_.get_service_info(type_, name)
+        def add_service(self, _zc: zeroconf.Zeroconf, _type: str, name: str) -> None:
+            self.info = _zc.get_service_info(_type, name)
     with zeroconf.Zeroconf() as zc:
         listener = ZCListener()
         zeroconf.ServiceBrowser(
@@ -50,41 +53,38 @@ def resolve_scanner():
     return listener.info
 
 
-def parse_region(region):
-    region = region.lower()
+def parse_region(region_spec: str) -> Dict[str, int]:
+    region_spec = region_spec.lower()
     try:
-        if region in papersize.SIZES:
-            paper_size = papersize.parse_papersize(region)
-            region = {
-                'x': decimal.Decimal('0'),
-                'y': decimal.Decimal('0'),
+        if region_spec in papersize.SIZES:
+            paper_size = papersize.parse_papersize(region_spec)
+            region_decimals: Dict[str, Decimal] = {
+                'x': Decimal('0'),
+                'y': Decimal('0'),
                 'width': paper_size[0],
                 'height': paper_size[1],
             }
         else:
-            parts = region.split(':')
+            parts = region_spec.split(':')
             if len(parts) != 4:
-                raise papersize.CouldNotParse(region)
-            parts = [papersize.parse_length(p) for p in parts]
-            region = {
-                'x': parts[0],
-                'y': parts[1],
-                'width': parts[2],
-                'height': parts[3],
+                raise papersize.CouldNotParse(region_spec)
+            parsed_parts = [papersize.parse_length(p) for p in parts]
+            region_decimals = {
+                'x': parsed_parts[0],
+                'y': parsed_parts[1],
+                'width': parsed_parts[2],
+                'height': parsed_parts[3],
             }
     except papersize.CouldNotParse:
-        print(f'Could not parse {region}', file=sys.stderr)
+        print(f'Could not parse {region_spec}', file=sys.stderr)
         sys.exit(1)
 
-    c = papersize.UNITS['in'] / 300  # ThreeHundredthsOfInches
-    region = {
-        k: int(v / c)
-        for k, v in region.items()
-    }
-    return region
+    c: Decimal = papersize.UNITS['in'] / 300  # ThreeHundredthsOfInches
+    region_ints: Dict[str, int] = {k: int(v / c) for k, v in region_decimals.items()}
+    return region_ints
 
 
-def main():
+def main() -> int:
     parser = argparse.ArgumentParser()
 
     parser.add_argument(
@@ -124,7 +124,7 @@ def main():
         if fsuffix == '':
             fsuffix = '.jpg'
 
-    region = {}
+    region: Dict[str, int] = {}
     if args.region:
         region = parse_region(args.region)
 
@@ -132,7 +132,7 @@ def main():
     if not info:
         print('No scanner found')
         sys.exit(1)
-    props = info.properties
+    props: Mapping[bytes, bytes] = info.properties
     if not args.quiet:
         suffix = '._uscan._tcp.local.'
         name = info.name
@@ -155,17 +155,19 @@ def main():
     if args.debug:
         print(base_url, file=sys.stderr)
 
-    def get_status(job_uuid=None):
+    def get_status(
+        job_uuid: Optional[str] = None,
+    ) -> Tuple[Dict[str, Any], Optional[Dict[str, Any]]]:
         resp = session.get(f'{base_url}/ScannerStatus')
         resp.raise_for_status()
-        status = xmltodict.parse(
+        status: Dict[str, Any] = xmltodict.parse(
             resp.text, force_list=('scan:JobInfo', ))['scan:ScannerStatus']
         if job_uuid is None:
             return status, None
 
         uuid_prefix = "urn:uuid:"  # Seen in a Brother MFC device
         for jobinfo in status['scan:Jobs']['scan:JobInfo']:
-            current_uuid = jobinfo['pwg:JobUuid']
+            current_uuid: str = jobinfo['pwg:JobUuid']
             if current_uuid.startswith(uuid_prefix):
                 current_uuid = current_uuid[len(uuid_prefix):]
 
