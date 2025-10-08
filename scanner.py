@@ -239,7 +239,24 @@ def main() -> int:
         if args.debug:
             print(json.dumps(jobinfo, indent=2), file=sys.stderr)
 
-        resp = session.get(f'{job_uri}/NextDocument')
+        retry_count = 0
+        while True:
+            resp = session.get(f'{job_uri}/NextDocument')
+            if resp.status_code != 503:
+                break
+            retry_count += 1
+            if args.debug:
+                print(
+                    f'503 from NextDocument (attempt {retry_count})',
+                    file=sys.stderr,
+                )
+                print(resp.text, file=sys.stderr)
+            if retry_count >= 100:
+                print('Scanner returned 503 for NextDocument', file=sys.stderr)
+                print(resp.text, file=sys.stderr)
+                resp.raise_for_status()
+            time.sleep(1)
+
         if resp.status_code == 404:
             # We are done
             break
