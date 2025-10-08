@@ -5,6 +5,7 @@ A MacOS/Linux CLI client for scanning documents using a network scanner supporti
 Known to work with at least:
 - HP Deskjet 4640 series
 - HP OfficeJet Pro 9010 series
+- HP OfficeJet Pro 9120 series
 - Canon Pixma G3260
 - Brother MFC-L2710DW
 - Brother DCP-L3550CDW
