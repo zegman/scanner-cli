@@ -34,6 +34,10 @@ except ModuleNotFoundError:  # pragma: no cover - fallback for <3.11
 CONFIG_ENV_VAR = 'SCANNER_CONFIG'
 CONFIG_DIRNAME = 'scanner'
 CONFIG_FILENAME = 'config.toml'
+DISCOVERY_TIMEOUT_SECONDS = 30.0
+DISCOVERY_RETRIES = 2
+DISCOVERY_RETRY_DELAY_SECONDS = 0.5
+DISCOVERY_SLEEP_SECONDS = 0.1
 CONFIGURABLE_ARGUMENT_KEYS: Set[str] = {
     'source',
     'format',
@@ -118,7 +122,10 @@ def load_config_defaults(valid_keys: Set[str]) -> Dict[str, Any]:
 # See: https://mopria.org/MopriaeSCLSpecDownload.php
 
 
-def resolve_scanner() -> Optional[zeroconf.ServiceInfo]:
+def resolve_scanner(
+    timeout_seconds: float = DISCOVERY_TIMEOUT_SECONDS,
+    retries: int = DISCOVERY_RETRIES,
+) -> Optional[zeroconf.ServiceInfo]:
     class ZCListener:
         def __init__(self) -> None:
             self.info: Optional[zeroconf.ServiceInfo] = None
@@ -131,18 +138,22 @@ def resolve_scanner() -> Optional[zeroconf.ServiceInfo]:
 
         def add_service(self, _zc: zeroconf.Zeroconf, _type: str, name: str) -> None:
             self.info = _zc.get_service_info(_type, name)
-    with zeroconf.Zeroconf() as zc:
-        listener = ZCListener()
-        zeroconf.ServiceBrowser(
-            zc, "_uscan._tcp.local.", listener=listener)
-        try:
-            for _ in range(0, 10 * 10):
-                if listener.info:
-                    break
-                time.sleep(.1)
-        except:
-            pass
-    return listener.info
+    for attempt in range(retries):
+        with zeroconf.Zeroconf() as zc:
+            listener = ZCListener()
+            zeroconf.ServiceBrowser(
+                zc, "_uscan._tcp.local.", listener=listener)
+            deadline = time.monotonic() + timeout_seconds
+            try:
+                while time.monotonic() < deadline:
+                    if listener.info:
+                        return listener.info
+                    time.sleep(DISCOVERY_SLEEP_SECONDS)
+            except:
+                pass
+        if attempt + 1 < retries:
+            time.sleep(DISCOVERY_RETRY_DELAY_SECONDS)
+    return None
 
 
 def parse_region(region_spec: str) -> Dict[str, int]:
