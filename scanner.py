@@ -14,12 +14,104 @@ import subprocess
 import os
 import datetime
 from decimal import Decimal
-from typing import Any, Dict, Mapping, Optional, Tuple
+from typing import Any, Dict, Mapping, Optional, Set, Tuple
+from pathlib import Path
 
 import papersize
 import requests
 import xmltodict
 import zeroconf
+
+try:
+    import tomllib as TOML_LIB  # Python 3.11+
+except ModuleNotFoundError:  # pragma: no cover - fallback for <3.11
+    try:
+        import tomli as TOML_LIB
+    except ModuleNotFoundError:
+        TOML_LIB = None  # type: ignore[assignment]
+
+
+CONFIG_ENV_VAR = 'SCANNER_CONFIG'
+CONFIG_DIRNAME = 'scanner'
+CONFIG_FILENAME = 'config.toml'
+CONFIGURABLE_ARGUMENT_KEYS: Set[str] = {
+    'source',
+    'format',
+    'resolution',
+    'region',
+}
+
+
+def get_config_path() -> Optional[Path]:
+    env_path = os.environ.get(CONFIG_ENV_VAR)
+    if env_path:
+        return Path(env_path).expanduser()
+
+    if os.name == 'nt':
+        appdata = os.environ.get('APPDATA')
+        if not appdata:
+            return None
+        return Path(appdata) / CONFIG_DIRNAME / CONFIG_FILENAME
+
+    config_home = os.environ.get('XDG_CONFIG_HOME')
+    if config_home:
+        config_home_path = Path(config_home)
+    else:
+        config_home_path = Path.home() / '.config'
+    return config_home_path / CONFIG_DIRNAME / CONFIG_FILENAME
+
+
+def load_config_defaults(valid_keys: Set[str]) -> Dict[str, Any]:
+    config_path = get_config_path()
+    if not config_path or not config_path.is_file():
+        return {}
+
+    if TOML_LIB is None:
+        print(
+            'Configuration file support requires the "tomli" package for '
+            'Python versions earlier than 3.11.',
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+    decode_error_cls = getattr(TOML_LIB, 'TOMLDecodeError', ValueError)
+
+    try:
+        with config_path.open('rb') as config_file:
+            config_data = TOML_LIB.load(config_file)
+    except OSError as exc:
+        print(f'Failed to read config file {config_path}: {exc}', file=sys.stderr)
+        sys.exit(1)
+    except (decode_error_cls, ValueError) as exc:
+        print(f'Failed to parse config file {config_path}: {exc}', file=sys.stderr)
+        sys.exit(1)
+
+    defaults_section = config_data.get('defaults', {})
+    if defaults_section is None:
+        return {}
+    if not isinstance(defaults_section, dict):
+        print(
+            f'Invalid config file {config_path}: [defaults] must be a table',
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+    filtered: Dict[str, Any] = {}
+    unknown_keys = []
+    for key, value in defaults_section.items():
+        if key in valid_keys:
+            filtered[key] = value
+        else:
+            unknown_keys.append(key)
+
+    if unknown_keys:
+        print(
+            f'Ignoring unknown config option(s) in {config_path}: '
+            f"{', '.join(sorted(unknown_keys))}",
+            file=sys.stderr,
+        )
+
+    return filtered
 
 
 
@@ -109,6 +201,10 @@ def main() -> int:
             '"Xoffset:Yoffset:Width:Height", with units understood by the '
             'papersize library. For example: 1cm:1.5cm:10cm:20cm')
     parser.add_argument('filename')
+
+    config_defaults = load_config_defaults(CONFIGURABLE_ARGUMENT_KEYS)
+    if config_defaults:
+        parser.set_defaults(**config_defaults)
 
     args = parser.parse_args()
 

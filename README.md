@@ -42,3 +42,23 @@ optional arguments:
                         by the papersize library. For example:
                         1cm:1.5cm:10cm:20cm
 ```
+
+## Configuration
+
+`scanner.py` reads an optional configuration file using [TOML](https://toml.io/). The lookup order is:
+
+1. A path specified via the `SCANNER_CONFIG` environment variable.
+2. `$XDG_CONFIG_HOME/scanner/config.toml` (or `~/.config/scanner/config.toml` when `XDG_CONFIG_HOME` is unset).
+3. `%APPDATA%\scanner\config.toml` on Windows.
+
+Only a `[defaults]` table is recognised. Keys map to CLI options and keep the same values and choices; command-line flags always win when provided. Supported keys are `source`, `format`, `resolution`, and `region`.
+
+Example:
+
+```toml
+[defaults]
+source = "feeder"
+format = "pdf"
+resolution = 300
+region = "letter"
+```
